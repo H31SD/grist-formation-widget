@@ -100,16 +100,19 @@
                 log('📋 Récupération de l\'accès à la table...', 'info');
                 gristAPI = grist.docApi;
                 
-                // Récupérer les informations de la table sélectionnée
-                const tableInfo = await grist.selectedTable();
-                log(`✅ Table sélectionnée: ${JSON.stringify(tableInfo)}`, 'ok');
-                
                 // Récupérer le nom de la table
                 const tables = await gristAPI.listTables();
                 log(`📊 Tables disponibles: ${JSON.stringify(tables)}`, 'info');
                 
-                tableAccess = await grist.getTable();
-                log('✅ Accès à la table obtenu !', 'ok');
+                // Utiliser directement la première table (FormationData)
+                if (tables && tables.length > 0) {
+                    const tableName = tables[0];
+                    log(`📋 Utilisation de la table: ${tableName}`, 'info');
+                    tableAccess = gristAPI.getTable(tableName);
+                    log('✅ Accès à la table obtenu !', 'ok');
+                } else {
+                    throw new Error('Aucune table trouvée');
+                }
                 
                 log('🎉 Initialisation complète !', 'ok');
                 
