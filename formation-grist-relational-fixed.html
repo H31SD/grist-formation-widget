@@ -107,15 +107,7 @@
                 <div class="form-group">
                     <label>Niveau</label>
                     <select id="moduleNiveauDeplacement">
-                        <option value="">Non spécifié</option>
-                        <option value="national">National</option>
-                        <option value="interacademique">Interacadémique</option>
-                        <option value="academique">Académique</option>
-                        <option value="departemental">Départemental</option>
-                        <option value="reseau">Réseau</option>
-                        <option value="etablissement">Établissement</option>
-                        <option value="distanciel">Distanciel</option>
-                        <option value="invitation">Invitation</option>
+                        <option value="">Chargement...</option>
                     </select>
                 </div>
                 <div class="form-group"><label>Dispositif</label><select id="moduleParent"><option value="">Aucun</option></select></div>
@@ -142,7 +134,7 @@
     </div>
     <script>
 const App = {
-    state: { dispositifs: [], modules: [], currentEditingId: null, currentEditingDispositifId: null, draggedElement: null, searchTerm: '', gristAPI: null, isReady: false },
+    state: { dispositifs: [], modules: [], niveauxDeplacement: [], currentEditingId: null, currentEditingDispositifId: null, draggedElement: null, searchTerm: '', gristAPI: null, isReady: false },
     utils: {
         escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; },
         debounce(func, wait) { let timeout; return function(...args) { clearTimeout(timeout); timeout = setTimeout(() => func(...args), wait); }; },
@@ -173,9 +165,11 @@ const App = {
                 
                 const dispositifsData = await App.state.gristAPI.fetchTable('Dispositifs');
                 const modulesData = await App.state.gristAPI.fetchTable('Modules');
+                const niveauxData = await App.state.gristAPI.fetchTable('NiveauDeplacement');
                 
                 console.log('📊 Dispositifs:', dispositifsData);
                 console.log('📊 Modules:', modulesData);
+                console.log('📊 Niveaux:', niveauxData);
                 
                 App.state.dispositifs = [];
                 if (dispositifsData.id) {
@@ -207,7 +201,18 @@ const App = {
                     }
                 }
                 
-                console.log('✅ Chargé:', { dispositifs: App.state.dispositifs.length, modules: App.state.modules.length });
+                App.state.niveauxDeplacement = [];
+                if (niveauxData.id) {
+                    for (let i = 0; i < niveauxData.id.length; i++) {
+                        App.state.niveauxDeplacement.push({
+                            id: niveauxData.id[i],
+                            niveau: niveauxData.Niveau[i],
+                            coutJSA: niveauxData.CoutJSA[i] || 0
+                        });
+                    }
+                }
+                
+                console.log('✅ Chargé:', { dispositifs: App.state.dispositifs.length, modules: App.state.modules.length, niveaux: App.state.niveauxDeplacement.length });
                 
                 App.render.update();
                 document.getElementById('loadingIndicator').style.display = 'none';
@@ -416,11 +421,21 @@ const App = {
             const form = document.getElementById('moduleForm');
             form.reset();
             App.state.currentEditingId = id;
+            
+            // Remplir la liste des dispositifs
             const parentSelect = document.getElementById('moduleParent');
             parentSelect.innerHTML = '<option value="">Aucun</option>';
             App.state.dispositifs.forEach(d => {
                 parentSelect.innerHTML += `<option value="${d.id}">${App.utils.escapeHtml(d.name)}</option>`;
             });
+            
+            // Remplir la liste des niveaux de déplacement depuis la table Grist
+            const niveauSelect = document.getElementById('moduleNiveauDeplacement');
+            niveauSelect.innerHTML = '<option value="">Non spécifié</option>';
+            App.state.niveauxDeplacement.forEach(n => {
+                niveauSelect.innerHTML += `<option value="${App.utils.escapeHtml(n.niveau)}">${App.utils.escapeHtml(n.niveau)}</option>`;
+            });
+            
             if (id) {
                 document.getElementById('modalTitle').textContent = 'Modifier le module';
                 const module = App.state.modules.find(m => m.id === id);
